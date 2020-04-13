@@ -185,67 +185,63 @@
   (flatten (traverse (conj (clojure.lang.PersistentQueue/EMPTY) tree) fun))))
 
 ; Generates the powerset for `inset`
-(defn powerset [inset]
-  (letfn [
-
-    ; Merge a list of vectors into a set
-    ; @param coll list of 2D vectors like '( [[1 2] [1 3]] [[3 4]] )
-    (merge-vecs [coll]
-      (reduce
-        #(apply conj %1 %2)
-        #{}
-        coll))
-
-    ; Gets the portion of list after a value
-    ; @param lst The list to pull from
-    ; @param value The sentinel value 
-    (after [lst value] (drop (inc (.indexOf lst value)) lst))
-
-    ; Get the last item from a vector in O(1) time
-
-    (lastv [v] (v (dec (count v))))
-
-    ; Generate the next sequence of values for a powerset, given the previous sequence
-    ; @param inseq A list of the original set's values
-    ; @param last-level 
-      ; A 2D vector where each inner vector is an element of the previous sequence,
-      ; aka a member of the powerset
-    (next-level [inseq last-level]
-
-      (let [
-        size (inc (count (last-level 0)))
-
-        tails (mapv lastv last-level)
-
-        chains (mapv (partial after inseq) tails)
-
-        next-groups 
-          (fn [total start values]
-            (let [
-              next-total 
-                (reduce 
-                  #(conj %1 (conj start %2))
-                  total
-                  values)]
-              (if (< (count values) size)
-                next-total
-                (recur next-total [(first values)] (rest values)))))
-
-        coll (map #(next-groups [] %1 %2) last-level chains)]
-       
-        (->> coll
-          (filter (complement empty?))
-          merge-vecs
-          (vec))))]
+(defn powerset [s]
   (let [
-    as-seq (seq inset)
-    base (mapv #(conj [] %) inset)
-    subgroups
-      (take-while 
-        (complement empty?) 
-        (iterate (partial next-level as-seq) base))]
 
-    (->> (merge-vecs subgroups)
-      (map set)
-      (set)
-      (clojure.set/union #{#{}}))))) 
+    ; The set containing each element wrapped in a set
+    first-gen
+      (set (map #(conj #{} %) s))
+
+    ; Generates the next iteration of the powerset
+    ; @param i-set The previous iteration of the powerset
+    next-generation
+      (fn [i-set]
+
+        ; Iterate over each member of the previous generation
+        (reduce
+          (fn [accum-set pset-member]
+            (clojure.set/union 
+
+              ; Create a set of sets containing each element combined with a previous generation set member
+              (reduce
+                (fn [out-set elm]
+                  (conj 
+                    out-set
+                    (conj pset-member elm)))
+                #{}
+                s)
+
+              ; Merge the above set with others created
+              accum-set))
+          #{}
+          i-set))
+
+    ; Filters out a set to only the subsets of size k
+    size-k?
+      (fn [s k] 
+        (filter #(= k (count %)) s))]
+  (conj
+    (->> 
+
+      ; Start with the size of the original set
+      (count s)
+
+      ; Increment it since we need to use it in a range
+      (inc)
+
+      ; Generate a range from 2 to the size of the original set, inclusive
+      (range 2)
+
+      ; Generate a sequence of the all powerset generations for size 2 to k
+      (reduce
+        #(cons 
+          (next-generation
+            (size-k? (first %1) %2))
+          %1)
+        (list (next-generation first-gen)))
+      
+      ; Put all the sets together
+      (apply clojure.set/union))
+
+    ; Add the empty set
+    #{})))

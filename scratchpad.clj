@@ -245,3 +245,16 @@
 
     ; Add the empty set
     #{})))
+
+; Determines whether the sum of the squares of the digits of `n` eventually is 1
+; e.g: 7 => 49 => 97 => 130 => 10 => 1
+(deffn happy [n]
+  (let [
+    digits (fn d [k]
+      (if (= 0 k) '() (cons (rem k 10) (d (quot k 10)))))
+    merger (fn [digits]
+      (->> digits (map #(int (Math/pow % 2))) (reduce +)))
+    recursor (fn [values k]
+      (if (contains? values k) (= k 1)
+        (recur (conj values k) (merger (digits k)))))]
+  (->> (digits n) (merger) (recursor #{}))))

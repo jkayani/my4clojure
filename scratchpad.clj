@@ -248,7 +248,7 @@
 
 ; Determines whether the sum of the squares of the digits of `n` eventually is 1
 ; e.g: 7 => 49 => 97 => 130 => 10 => 1
-(deffn happy [n]
+(defn happy [n]
   (let [
     digits (fn d [k]
       (if (= 0 k) '() (cons (rem k 10) (d (quot k 10)))))
@@ -258,3 +258,38 @@
       (if (contains? values k) (= k 1)
         (recur (conj values k) (merger (digits k)))))]
   (->> (digits n) (merger) (recursor #{}))))
+
+; Takes a list of words, and groups them into sets of anagrams
+; ["top" "pot" "toe"] => #{ #{"top" "pot"} }
+(defn anagram [words]
+  (let [
+    same-letters (fn [w1 w2]
+      (let [
+        charlist #(map char %)
+        ordered-sets 
+          #(if (> (count %1) (count %2))
+            (list %1 %2)
+            (list %2 %1))
+        lhs (set (charlist w1))
+        rhs (set (charlist w2))]
+        (->> (ordered-sets lhs rhs)
+          (apply clojure.set/difference)
+          (empty?))))
+    same-length (fn [w1 w2] (= (count w1) (count w2)))
+    anagram?
+      #(and (same-letters %1 %2) (same-length %1 %2))
+    args (list #{} words)]    
+  (clojure.set/difference
+    (apply 
+      reduce 
+        (fn [accum-set word]
+          (conj
+            accum-set
+            (apply 
+              reduce 
+              #(if (and (not= word %2) (anagram? word %2))
+                (conj %1 word %2) 
+                %1) 
+              args)))
+        args)
+      #{#{}})))

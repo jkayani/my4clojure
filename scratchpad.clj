@@ -293,3 +293,47 @@
               args)))
         args)
       #{#{}})))
+
+; Stack computer
+; Takes a lisp like expression and evaluates it with given bindings 
+; e.g,  ((uce '(* a b)) '{a 1 b 2}) => 2
+(defn uce [expr]
+  (let [
+      ; Function to resolve variables; i.e, dereference them
+      derefer (fn [table i] (if (symbol? i) (table i) i ))
+
+      ; High level explanation:
+      ; An expression is either: an operand, an operator, or a list
+      ;   If it's a list, we must parse it's inner lists
+      ;   For an innermost list aka simple expression, 
+      ;    we evalulate it by applying a function that "uses" the operator on the operands
+      ; We always dereference a variable after seeing it the first time
+      parse (fn p [e sym-table]
+        (let [
+          lookup (partial derefer sym-table)
+
+          ; Can either be a list, operator, or operand
+          next-term (if (list? e) (peek e) (lookup e))
+
+          ; Can only be a list, if there's anything left
+          rest-terms (if (list? e) (pop e) nil)
+          operators 
+            {
+              (symbol "/") #(apply / %&)
+              (symbol "*") #(apply * %&)
+              (symbol "+") #(apply + %&)
+              (symbol "-") #(apply - %&)
+            }]
+        (if (some list? rest-terms) 
+          ; There are further subexpressions to parse
+          (apply 
+            (operators next-term) 
+            (map #(p % sym-table) rest-terms))
+          
+          ; There is only a simple expression, or a term
+          (if (operators next-term)
+            (apply 
+              (operators next-term) 
+              (map lookup rest-terms))
+            (lookup next-term)))))]
+    (partial parse expr)))

@@ -337,3 +337,19 @@
               (map lookup rest-terms))
             (lookup next-term)))))]
     (partial parse expr)))
+
+; Calculates the transitive closure for a set of binary relations
+; e.g (closure #{ [1 2] [2 3] }) => #{ [1 2] [2 3] [1 3] }
+(defn closure [relations]
+  (let [
+    graph
+      (reduce #(assoc %1 (%2 0) (%2 1)) {} relations)]
+    (reduce
+      (fn [relations k]
+        (loop [start k r-set relations]
+          (let [value (graph start)]
+            (if (nil? value)
+              r-set 
+              (recur value (conj r-set [k value]))))))
+      #{}
+      (keys graph))))

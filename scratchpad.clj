@@ -353,3 +353,74 @@
               (recur value (conj r-set [k value]))))))
       #{}
       (keys graph))))
+
+; Takes a number n and a nested sequence s and returns the numbers
+; of s that are <= n, at the same nesting seen in s
+; i.e, (h 10 [1 [2 3 [4 [5]]]]) => [1 [2 [3 [4]]]]
+(defn horriblis [n s]
+  (let [
+    
+    ; lst is the list we've built thus far
+    ; depth is the current level of nesting we're at
+    ; max-depth is the max level of nesting we've seen
+    ; subse is the unprocessed input collection
+    ; sum is the sum of numbers we've picked so far
+    d (fn d [lst depth max-depth subse sum]
+        (let [nxt (first subse)]
+          
+          ; Recursive case - there is an inner list to process
+          (if (sequential? nxt)
+
+            (let [
+              
+              ; Here we dive into the inner list to extract values from it
+              ; and recalculate the sum of the values we've chosen
+              inner (d lst (inc depth) max-depth nxt sum)
+              inner-sum (reduce + (flatten inner))]
+
+              ; Once the inner lists have been handled, we can finish 
+              ; the remaining items at the current depth
+              (d inner depth depth (rest subse) inner-sum))
+            
+            (if (or (nil? nxt) (> (+ sum nxt) n))
+
+              ; Base case - there is nothing left to process, 
+              ; or we have enough numbers
+              lst
+              
+              ; Recursive case - we select this number and 
+              ; need to process the rest of the list
+              (let [
+                
+                ; Extracts the inner-most vector in lst
+                inner-most 
+                  ((apply comp (take (min depth max-depth) (repeat last))) lst)
+
+                ; Fn to wrap % in a vector w. the right amount of nesting
+                wrap (apply comp (take (- depth max-depth) (repeat vector)))
+
+                ; A list of the first part of each vector leading up to inner-most
+                outers  
+                  (map
+                    pop
+                    (take 
+                      (if (= depth max-depth) 
+                        depth 
+                        (min depth max-depth)) 
+                      (iterate last lst)))
+
+                ; The new inner-most vector to replace inner-most, 
+                ; containing the newly chosen value
+                inner-replacement 
+                  (conj inner-most (if (> depth max-depth) (wrap nxt) nxt))
+
+                ; The new `lst` built by re-constructing the vector starting at inner-replacement
+                ; and building up to the outer-most vector
+                new-lst 
+                  (reduce #(conj %2 %1) inner-replacement (reverse outers))]
+                
+                ; Handle the rest of the unprocessed collection
+                (d new-lst depth (max depth max-depth) (rest subse) (+ sum nxt)))))))]
+              
+      ; Kickoff the recursion 
+      (d [] 0 0 s 0)))

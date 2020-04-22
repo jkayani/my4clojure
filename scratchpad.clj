@@ -424,3 +424,16 @@
               
       ; Kickoff the recursion 
       (d [] 0 0 s 0)))
+
+; Merges a bunch of maps and uses `fun` to handle conflicts
+; (merge-f + {:a 1 :b 2} {:a 2}) => {:a 3 :b 2}
+(defn merge-f [fun & maps]
+  (let [
+    reducer (fn [prev-map nxt-map]
+      (reduce
+        #(if (nil? (prev-map %2)) 
+          (assoc %1 %2 (nxt-map %2))
+          (assoc %1 %2 (fun (prev-map %2) (nxt-map %2))))
+        prev-map
+        (keys nxt-map)))]
+    (reduce reducer maps)))

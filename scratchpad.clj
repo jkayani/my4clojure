@@ -437,3 +437,14 @@
         prev-map
         (keys nxt-map)))]
     (reduce reducer maps)))
+
+; Takes nested 1-arity functions and flattens them into 1
+; (d (fn [a] (fn [b] (+ a b)))) => (fn [a b] (+ a b))
+(defn decurry [f]
+  (partial 
+    (fn i [fun & args]
+      (let [res (fun (first args))]
+        (if (fn? res)
+          (apply i res (rest args))
+          res)))
+    f))

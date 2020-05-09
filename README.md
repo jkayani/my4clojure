@@ -1,3 +1,3 @@
-# Solutions to 4clojure problems
+# My solutions to 4clojure problems
 
 username: `jvm1337`

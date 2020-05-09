@@ -448,3 +448,18 @@
           (apply i res (rest args))
           res)))
     f))
+
+; Takes a number and determines if the sum of the left half's digits
+; equal the right halfs
+; e.g, 121 => 1 = 1 => true
+(defn balanced? [n]
+  (let [
+    digits ((fn d [n] 
+      (if (< n 10) 
+        (cons n '()) 
+        (cons (rem n 10) (d (quot n 10))))) n)
+    half (quot (count digits) 2)
+    lhs (take half digits)
+    rhs (take half (reverse digits))]
+
+    (= (reduce + lhs) (reduce + rhs))))
